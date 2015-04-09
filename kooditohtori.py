@@ -78,4 +78,8 @@ def bug_instances():
     
     return result
 
+@bottle.route("/static/<filename>")
+def serve_static(filename):
+    return bottle.static_file(filename, root="./static")
+    
 bottle.run(host='localhost', port=6060, debug=True)
