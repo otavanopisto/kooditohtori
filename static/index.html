@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>testi</title>
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  </head>
+  <body>
+   <h1>Findbugs results:</h1>
+   <div id='resultList'></div>
+   <script>
+   $.getJSON('/bug_instances', function(bugs){
+     var currentProject = '';
+     for(var i = 0, j = bugs.bug_instances.length; i < j;i++){
+       var bug = bugs.bug_instances[i];
+       var project = bug.project;
+       if(project != currentProject){
+         currentProject = project
+         $('#resultList').append('<h3>'+project+'</h3>');
+       }
+       $('#resultList').append('<p title="'+bug.short_message+'">'+bug.long_message+'<br/><span style="color:#888888; font-size:10px;">'+new Date(bug.timestamp).toLocaleString()+'</span></p>');
+       
+     }
+   });
+   </script>
+  </body>
+</html>
