@@ -18,8 +18,7 @@
          currentProject = project
          $('#resultList').append('<h3>'+project+'</h3>');
        }
-       $('#resultList').append('<p title="'+bug.short_message+'">'+bug.long_message+'<br/><span style="color:#888888; font-size:10px;">'+new Date(bug.timestamp).toLocaleString()+'</span></p>');
-       
+       $('#resultList').append('<p title="'+bug.short_message+'">'+bug.long_message+'</p>');
      }
    });
    </script>
