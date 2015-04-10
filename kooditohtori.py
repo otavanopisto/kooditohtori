@@ -60,10 +60,10 @@ def bug_instances():
         FROM
             bug_instance
         ORDER BY
-            timestamp DESC,
-            project DESC,
-            short_message DESC,
-            long_message DESC""")
+            travis_build_number DESC,
+            project ASC,
+            short_message ASC,
+            long_message ASC""")
     
     result = {
         "bug_instances": [
