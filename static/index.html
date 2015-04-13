@@ -7,18 +7,25 @@
   </head>
   <body>
    <h1>Findbugs results:</h1>
-   <div id='resultList'></div>
+   <table>
+     <thead>
+       <tr>
+         <th>Project</th>
+         <th>Bug message</th>
+         <th>Bug count</th>
+       </tr>
+     </thead>
+     <tbody id="results"></tbody>
+   </table>
    <script>
-   $.getJSON('/bug_instances', function(bugs){
-     var currentProject = '';
-     for(var i = 0, j = bugs.bug_instances.length; i < j;i++){
-       var bug = bugs.bug_instances[i];
-       var project = bug.project;
-       if(project != currentProject){
-         currentProject = project
-         $('#resultList').append('<h3>'+project+'</h3>');
-       }
-       $('#resultList').append('<p title="'+bug.short_message+'">'+bug.long_message+'</p>');
+   $.getJSON('/bug_report', function(bugs){
+     for(var i = 0, j = bugs.bug_counts.length; i < j;i++){
+       var bug = bugs.bug_counts[i];
+       $('#results').append(
+        '<tr><td>' + bug.project + 
+        '</td><td>' + bug.short_message +
+        '</td><td>' + bug.num_bugs +
+        '</td></tr>'); 
      }
    });
    </script>

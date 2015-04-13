@@ -14,15 +14,26 @@
 import bottle
 import sqlite3
 import xml.etree.ElementTree as ET
+import functools
+
+
+def transactional(fn):
+    @functools.wraps(fn)
+    def inner(*args, **kwargs):
+        conn = sqlite3.connect("kooditohtori.db")
+        kwargs.update(cursor=conn.cursor())
+        result = fn(*args, **kwargs)
+        conn.close()
+        return result
+    return inner
 
 
 @bottle.put("/reports/:project/:travis_build_number")
-def send_report(project, travis_build_number):
-    conn = sqlite3.connect("kooditohtori.db")
-    c = conn.cursor()
+@transactional
+def send_report(cursor, project, travis_build_number):
     root = ET.parse(bottle.request.body).getroot()
     
-    c.execute(
+    cursor.execute(
         """ DELETE FROM bug_instance
             WHERE project = ?
             AND travis_build_number = ?""",
@@ -31,27 +42,23 @@ def send_report(project, travis_build_number):
     for bug_instance in root.findall('BugInstance'):
         short_message = bug_instance.find('ShortMessage').text
         long_message = bug_instance.find('LongMessage').text
-        c.execute("""INSERT INTO bug_instance (
-                        travis_build_number,
-                        project,
-                        short_message,
-                        long_message
-                    ) VALUES (?, ?, ?, ?)""",
-                    (travis_build_number,
-                        project,
-                        short_message,
-                        long_message))
-        
-    conn.commit()
-    conn.close()
+        cursor.execute(
+            """INSERT INTO bug_instance (
+                travis_build_number,
+                project,
+                short_message,
+                long_message
+            ) VALUES (?, ?, ?, ?)""",
+            (travis_build_number,
+                project,
+                short_message,
+                long_message))
     
 
 @bottle.get("/bug_instances")
-def bug_instances():
-    conn = sqlite3.connect("kooditohtori.db")
-    c = conn.cursor()
-    
-    rows = c.execute(
+@transactional
+def bug_instances(cursor):
+    rows = cursor.execute(
         """SELECT
             travis_build_number,
             project,
@@ -65,7 +72,7 @@ def bug_instances():
             short_message ASC,
             long_message ASC""")
     
-    result = {
+    return {
         "bug_instances": [
             {'travis_build_number': travis_build_number,
              'project': project,
@@ -75,11 +82,38 @@ def bug_instances():
             in rows
         ]
     }
-        
-    conn.commit()
-    conn.close()
+
+
+@bottle.get("/bug_report")
+@transactional
+def bug_report(cursor):
+    rows = cursor.execute(
+        """SELECT
+            project,
+            short_message,
+            COUNT(*) as num_bugs
+        FROM
+            bug_instance
+        WHERE
+            travis_build_number =
+                (SELECT MAX(travis_build_number) FROM bug_instance)
+        GROUP BY
+            project,
+            short_message
+        ORDER BY
+            num_bugs DESC,
+            short_message ASC,
+            project ASC""")
     
-    return result
+    return {
+        "bug_counts": [
+            {'project': project,
+             'short_message': short_message,
+             'num_bugs': num_bugs}
+            for (project, short_message, num_bugs)
+            in rows
+        ]
+    }
 
 
 @bottle.route("/static/<filename>")
