@@ -21,8 +21,10 @@ def transactional(fn):
     @functools.wraps(fn)
     def inner(*args, **kwargs):
         conn = sqlite3.connect("kooditohtori.db")
-        kwargs.update(cursor=conn.cursor())
+        cursor = conn.cursor()
+        kwargs.update(cursor=cursor)
         result = fn(*args, **kwargs)
+        conn.commit()
         conn.close()
         return result
     return inner
