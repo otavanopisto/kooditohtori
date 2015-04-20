@@ -4,6 +4,16 @@
     <meta charset="utf-8">
     <title>testi</title>
     <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <style>
+    .summary td {
+      padding-top: 0.5em;
+      font-weight: bold;
+    }
+    .detail td {
+      padding-left: 2em;
+      color: grey;
+    }
+    </style>
   </head>
   <body>
    <h1>Findbugs results:</h1>
@@ -21,11 +31,17 @@
    $.getJSON('/bug_report', function(bugs){
      for(var i = 0, j = bugs.bug_counts.length; i < j;i++){
        var bug = bugs.bug_counts[i];
-       $('#results').append(
-        '<tr><td>' + bug.project + 
-        '</td><td>' + bug.short_message +
-        '</td><td>' + bug.num_bugs +
-        '</td></tr>'); 
+       if (bug.long_message == null) {
+           $('#results').append(
+            '<tr class="summary"><td>' + bug.project + 
+            '</td><td>' + bug.short_message +
+            '</td><td>' + bug.num_bugs +
+            '</td></tr>'); 
+        } else {
+            $('#results').append(
+             '<tr class="detail"><td colspan="3">' + bug.long_message +
+             '</td></tr>');
+        }
      }
    });
    </script>

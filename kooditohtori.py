@@ -37,11 +37,11 @@ def transactional(fn):
 def send_report(cursor, project, travis_build_number):
     root = ET.parse(bottle.request.body).getroot()
     
-    cursor.execute(
-        """ DELETE FROM bug_instance
+    cursor.execute("""
+            DELETE FROM bug_instance
             WHERE project = ?
             AND travis_build_number = ?""",
-        (project, travis_build_number))
+                    (project, travis_build_number))
     
     for bug_instance in root.findall('BugInstance'):
         short_message = bug_instance.find('ShortMessage').text
@@ -62,8 +62,8 @@ def send_report(cursor, project, travis_build_number):
 @bottle.get("/bug_instances")
 @transactional
 def bug_instances(cursor):
-    rows = cursor.execute(
-        """SELECT
+    rows = cursor.execute("""
+        SELECT
             travis_build_number,
             project,
             short_message,
@@ -91,30 +91,46 @@ def bug_instances(cursor):
 @bottle.get("/bug_report")
 @transactional
 def bug_report(cursor):
-    rows = cursor.execute(
-        """SELECT
-            project,
-            short_message,
-            COUNT(*) as num_bugs
+    rows = cursor.execute("""
+        SELECT
+            *
         FROM
-            bug_instance
-        WHERE
-            travis_build_number =
-                (SELECT MAX(travis_build_number) FROM bug_instance)
-        GROUP BY
-            project,
-            short_message
+            (SELECT
+                project,
+                short_message,
+                COUNT(*) as num_bugs,
+                NULL as long_message
+            FROM
+                bug_instance
+            WHERE
+                travis_build_number =
+                    (SELECT MAX(travis_build_number) FROM bug_instance)
+            GROUP BY
+                project,
+                short_message
+            UNION ALL
+            SELECT
+                project,
+                short_message,
+                NULL as num_bugs,
+                long_message
+            FROM
+                bug_instance
+            WHERE
+                travis_build_number =
+                    (SELECT MAX(travis_build_number) FROM bug_instance))
         ORDER BY
-            num_bugs DESC,
+            project ASC,
             short_message ASC,
-            project ASC""")
+            num_bugs DESC""")
     
     return {
         "bug_counts": [
             {'project': project,
              'short_message': short_message,
-             'num_bugs': num_bugs}
-            for (project, short_message, num_bugs)
+             'num_bugs': num_bugs,
+             'long_message': long_message}
+            for (project, short_message, num_bugs, long_message)
             in rows
         ]
     }
